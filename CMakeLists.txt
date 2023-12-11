@@ -35,7 +35,12 @@ endif ()
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
-add_library(yaga src/lra/Fraction.h src/lra/Rational.h src/lra/Long_fraction.cpp)
+add_library(yaga src/lra/Fraction.h src/lra/Rational.h src/lra/Long_fraction.cpp
+        src/Interpolation.cpp
+        src/Interpolation.h
+        src/Value.h
+        src/bool/Bool_value.h
+        src/lra/Rational_value.h)
 target_link_libraries(yaga PUBLIC GMP::GMP)
 add_executable(test)
 add_executable(sat src/sat_solver.cpp)
