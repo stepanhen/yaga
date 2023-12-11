@@ -14,6 +14,9 @@
 #include "Smtlib_parser.h"
 #include "Rational.h"
 #include "Yaga.h"
+#include "Value.h"
+#include "Bool_value.h"
+#include "Rational_value.h"
 
 using namespace yaga;
 using namespace yaga::test;
@@ -53,6 +56,36 @@ TEST_CASE("Check a satisfiable formula in LRA", "[lra][sat][integration]")
     REQUIRE((x_val < 0 || y_val < 0));
 }
 
+TEST_CASE("Solve example 2", "[lra][sat][integration]")
+{
+    Solver solver;
+    solver.trail().set_model<bool>(Variable::boolean, 0);
+    solver.trail().set_model<Rational>(Variable::rational, 2);
+    solver.set_restart_policy<No_restart>();
+    solver.set_variable_order<First_unassigned>();
+    auto& theories = solver.set_theory<Theory_combination>();
+    theories.add_theory<Bool_theory>();
+    auto& lra = theories.add_theory<Linear_arithmetic>();
+    auto linear = factory(lra, solver.trail());
+    auto [x, y] = real_vars<2>();
+
+    solver.db().assert_clause(clause(linear(y > 0)));
+    solver.db().assert_clause(clause(linear(x + y < 2)));
+
+    auto value = std::make_shared<Rational_value>(Long_fraction(2));
+    auto m = std::unordered_map<Variable, std::shared_ptr<Value>, Variable_hash>();
+    m.insert({x, value});
+    auto result = solver.check_with_model(m);
+    auto models = lra.relevant_models(solver.trail());
+    REQUIRE(result.first == Solver::Result::sat);
+
+    auto x_val = models.owned().value(x.ord());
+    auto y_val = models.owned().value(y.ord());
+    REQUIRE(models.owned().is_defined(x.ord()));
+    REQUIRE(models.owned().is_defined(y.ord()));
+    REQUIRE((x_val + y_val < 2));
+    REQUIRE(y_val > 0);
+}
 TEST_CASE("Solve system of equations in LRA", "[lra][sat][integration]")
 {
 
