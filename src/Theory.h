@@ -36,7 +36,6 @@ public:
      * @param var variable to decide
      */
     virtual void decide(Database&, Trail&, Variable) = 0;
-
     /** Reset the last checked position on the @p trail for the next `assigned()` call
      * 
      * @param db clause database

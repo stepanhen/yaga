@@ -2,6 +2,7 @@
 
 namespace yaga {
 
+
 void Bool_theory::decide(Database&, Trail& trail, Variable var)
 {
     if (var.type() == Variable::boolean)

@@ -44,6 +44,74 @@ std::pair<std::vector<Clause>, int> Solver::analyze_conflicts(std::vector<Clause
     }
     return {learned, level};
 }
+std::pair<std::vector<Clause>, int> Solver::analyze_conflicts_with_vars(std::vector<Clause>&& conflicts, const std::vector<Variable>& model)
+{
+    ++total_conflicts;
+    std::vector<Clause> learned;
+    int level = std::numeric_limits<int>::max();
+    for (auto&& conflict : conflicts)
+    {
+        ++total_conflict_clauses;
+
+        // derive clause suitable for backtracking
+        auto [clause, clause_level] =
+            analysis.analyze_with_vars(trail(), std::move(conflict), [&](auto const& other_clause) {
+                dispatcher.on_conflict_resolved(db(), trail(), other_clause);
+            }, std::move(model));
+
+        if (!clause.empty())
+        {
+            subsumption->minimize(trail(), clause);
+        }
+
+        // find all conflict clauses at the lowest decision level
+        if (clause_level < level)
+        {
+            level = clause_level;
+            learned.clear();
+            learned.push_back(std::move(clause));
+        }
+        else if (clause_level == level)
+        {
+            learned.push_back(std::move(clause));
+        }
+    }
+    return {learned, level};
+}
+std::pair<std::vector<Clause>, int> Solver::analyze_final(std::vector<Clause>&& conflicts, const std::vector<Variable>& vars_to_skip)
+{
+   ++total_conflicts;
+    std::vector<Clause> learned;
+    int level = std::numeric_limits<int>::max();
+    for (auto&& conflict : conflicts)
+    {
+        ++total_conflict_clauses;
+
+        // derive clause suitable for backtracking
+        auto [clause, clause_level] =
+            analysis.analyze_final(trail(), std::move(conflict), [&](auto const& other_clause) {
+                dispatcher.on_conflict_resolved(db(), trail(), other_clause);
+            }, vars_to_skip);
+
+        if (!clause.empty())
+        {
+            subsumption->minimize(trail(), clause);
+        }
+
+        // find all conflict clauses at the lowest decision level
+        if (clause_level < level)
+        {
+            level = clause_level;
+            learned.clear();
+            learned.push_back(std::move(clause));
+        }
+        else if (clause_level == level)
+        {
+            learned.push_back(std::move(clause));
+        }
+    }
+    return {learned, level};
+}
 
 Solver::Clause_range Solver::learn(std::vector<Clause>&& clauses)
 {
@@ -182,7 +250,6 @@ void Solver::restart()
 
     dispatcher.on_restart(db(), trail());
 }
-
 Solver::Result Solver::check()
 {
     init();
@@ -221,6 +288,84 @@ Solver::Result Solver::check()
                 return Result::sat;
             }
             decide(var.value());
+        }
+    }
+}
+std::pair<Solver::Result, std::vector<Clause>> Solver::check_with_model(const std::unordered_map<Variable, std::shared_ptr<Value>, Variable_hash>& model)
+{
+    init();
+    std::vector<Variable> vars;
+
+    for (auto& var : model) {
+        vars.push_back(var.first);
+    }
+
+    for (;;)
+    {
+        auto conflicts = propagate();
+        if (!conflicts.empty())
+        {
+            if (trail().decision_level() == 0)
+            {
+                return std::make_pair(Result::unsat, std::vector<Clause>{});
+            }
+
+            auto [learned, level] = analyze_conflicts_with_vars(std::move(conflicts), vars);
+            if (std::any_of(learned.begin(), learned.end(), [](auto const& clause) { return clause.empty(); }))
+            {
+                auto i = analyze_final(std::move(conflicts), vars);
+                return std::make_pair(Result::unsat, i.first);
+            }
+
+            auto clauses = learn(std::move(learned));
+            if (restart_policy->should_restart())
+            {
+                restart();
+            }
+            else // backtrack instead of restarting
+            {
+                backtrack_with(clauses, level);
+            }
+        }
+        else // no conflict
+        {
+            bool value_decided = false;
+
+            auto& model_b = solver_trail.model<bool>(Variable::boolean);
+            auto& model_r = solver_trail.model<Rational>(Variable::rational);
+            for (auto& var : model) {
+                // Check var type
+                auto& value = *var.second;
+                if (value.type() == Value::boolean)
+                {
+                    if (!model_b.is_defined(var.first.ord()))
+                    {
+                        auto& bool_value = dynamic_cast<Bool_value&>(value);
+                        model_b.set_value(var.first.ord(), bool_value.get_value());
+                        value_decided = true;
+                        break;
+                    }
+                } else if (value.type() == Value::rational)
+                {
+                    if (!model_r.is_defined(var.first.ord()))
+                    {
+                        auto& rational_value = dynamic_cast<Rational_value&>(value);
+                        model_r.set_value(var.first.ord(), rational_value.get_value());
+                        value_decided = true;
+                        break;
+                    }
+                }
+            }
+            if (!value_decided)
+            {
+                auto var = pick_variable();
+                if (!var)
+                {
+                    return std::make_pair(Result::sat, std::vector<Clause>{});
+                }
+
+                decide(var.value());
+            }
         }
     }
 }

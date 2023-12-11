@@ -12,15 +12,20 @@
 #include "Clause.h"
 #include "Conflict_analysis.h"
 #include "Database.h"
-#include "Evsids.h"
-#include "Event_listener.h"
 #include "Event_dispatcher.h"
+#include "Event_listener.h"
+#include "Evsids.h"
+#include "Long_fraction.h"
 #include "Restart.h"
 #include "Subsumption.h"
 #include "Theory.h"
 #include "Trail.h"
 #include "Variable.h"
 #include "Variable_order.h"
+#include "Rational.h"
+#include "Value.h"
+#include "Bool_value.h"
+#include "Rational_value.h"
 
 namespace yaga {
 
@@ -123,12 +128,17 @@ public:
         dispatcher.add(restart_policy.get());
         return *policy_ptr;
     }
-
     /** Check satisfiability of asserted clauses in database `db()`
      *
      * @return `sat` if asserted clauses are satisfiable, `unsat` otherwise
      */
     Result check();
+
+    /** Check satisfiability of asserted clauses in database with variable values assigned `db()`
+     *
+     * @return <`sat`, null> if asserted clauses are satisfiable, <`unsat`, interpolant> otherwise
+     */
+    std::pair<Result, std::vector<Clause>> check_with_model(const std::unordered_map<Variable, std::shared_ptr<Value>, Variable_hash>& model);
 
     /** Get total number of conflicts
      *
@@ -191,6 +201,9 @@ private:
     [[nodiscard]] std::vector<Clause> propagate();
     // analyze conflict clauses
     [[nodiscard]] std::pair<std::vector<Clause>, int> analyze_conflicts(std::vector<Clause>&& conflict);
+    [[nodiscard]] std::pair<std::vector<Clause>, int> analyze_conflicts_with_vars(std::vector<Clause>&& conflict, const std::vector<Variable>& model);
+    // final conflict analysis
+    [[nodiscard]] std::pair<std::vector<Clause>, int> analyze_final(std::vector<Clause>&& conflict, const std::vector<Variable>& vars_to_skip);
     // backtrack with conflict clauses to assertion level `level`
     void backtrack_with(Clause_range clauses, int level);
     // process all learned clauses and add them to database
