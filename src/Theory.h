@@ -8,6 +8,7 @@
 #include "Database.h"
 #include "Event_listener.h"
 #include "Trail.h"
+#include "Value.h"
 #include "Variable.h"
 
 namespace yaga {
@@ -25,7 +26,7 @@ public:
      * @return conflict clause -- clause that is false in @p trail
      */
     virtual std::vector<Clause> propagate(Database&, Trail&) = 0;
-
+    virtual void decide_val(Trail&, Variable, std::shared_ptr<Value>) = 0;
     /** Decide a value for variable @p var
      *
      * The method should ignore the request if @p var is not owned by this

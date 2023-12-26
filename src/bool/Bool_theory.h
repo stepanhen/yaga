@@ -40,7 +40,7 @@ public:
      * @return conflict clause if there is a conflict, none otherwise.
      */
     std::vector<Clause> propagate(Database& db, Trail& trail) override;
-
+    void decide_val(Trail& trail, Variable var, std::shared_ptr<Value> value) override;
     /** Decide value for variable @p var if it is a boolean variable
      *
      * @param db clause database

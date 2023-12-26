@@ -24,7 +24,13 @@ std::vector<Clause> Theory_combination::propagate(Database& db, Trail& trail)
     }
     return {}; // no conflict
 }
-
+void Theory_combination::decide_val(Trail& trail, Variable var, std::shared_ptr<Value> value)
+{
+    for (auto&& theory: theories())
+    {
+        theory->decide_val(trail, var, value);
+    }
+}
 void Theory_combination::decide(Database& db, Trail& trail, Variable var)
 {
     for (auto&& theory : theories())

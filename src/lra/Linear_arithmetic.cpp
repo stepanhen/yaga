@@ -1,4 +1,5 @@
 #include "Linear_arithmetic.h"
+#include "Rational_value.h"
 
 namespace yaga {
 
@@ -501,7 +502,16 @@ std::optional<Rational> Linear_arithmetic::find_integer(Models const& models, Bo
 
     return {};
 }
-
+void Linear_arithmetic::decide_val(Trail& trail, Variable var, std::shared_ptr<Value> value) {
+    if (value->type() != Value::rational) {
+        return;
+    }
+    auto models = relevant_models(trail);
+    auto& rational_value = dynamic_cast<Rational_value&>(*value);
+    cached_values.set_value(var.ord(), rational_value.get_value());
+    models.owned().set_value(var.ord(), rational_value.get_value());
+    trail.decide(var);
+}
 void Linear_arithmetic::decide(Database&, Trail& trail, Variable var)
 {
     if (var.type() != Variable::rational)

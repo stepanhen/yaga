@@ -71,6 +71,7 @@ public:
      */
     std::vector<Clause> propagate(Database&, Trail&) override;
 
+    void decide_val(Trail&, Variable, std::shared_ptr<Value>) override;
     /** Decide value for @p variable if it is a real variable and add it to the trail.
      *
      * @param db clause database

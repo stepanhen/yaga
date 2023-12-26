@@ -1,4 +1,5 @@
 #include "Solver.h"
+#include <iostream>
 
 namespace yaga {
 
@@ -340,8 +341,12 @@ std::pair<Solver::Result, std::vector<Clause>> Solver::check_with_model(const st
                 {
                     if (!model_b.is_defined(var.first.ord()))
                     {
-                        auto& bool_value = dynamic_cast<Bool_value&>(value);
-                        model_b.set_value(var.first.ord(), bool_value.get_value());
+                        std::cout << "DECIDING BOOL VALUE" << std::endl;
+                        ++total_decisions;
+                        theory()->decide_val(trail(), var.first, var.second);
+//                        auto& bool_value = dynamic_cast<Bool_value&>(value);
+//                        model_b.set_value(var.first.ord(), bool_value.get_value());
+//                        trail().decide(var.first);
                         value_decided = true;
                         break;
                     }
@@ -349,8 +354,12 @@ std::pair<Solver::Result, std::vector<Clause>> Solver::check_with_model(const st
                 {
                     if (!model_r.is_defined(var.first.ord()))
                     {
-                        auto& rational_value = dynamic_cast<Rational_value&>(value);
-                        model_r.set_value(var.first.ord(), rational_value.get_value());
+                        std::cout << "DECIDING RATIONAL VALUE" << std::endl;
+                        ++total_decisions;
+                        theory()->decide_val(trail(), var.first, var.second);
+//                        auto& rational_value = dynamic_cast<Rational_value&>(value);
+//                        model_r.set_value(var.first.ord(), rational_value.get_value());
+//                        trail().decide(var.first);
                         value_decided = true;
                         break;
                     }

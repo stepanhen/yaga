@@ -1,8 +1,19 @@
 #include "Bool_theory.h"
+#include "Bool_value.h"
+#include <iostream>
 
 namespace yaga {
 
-
+void Bool_theory::decide_val(Trail& trail, Variable var, std::shared_ptr<Value> value)
+{
+    if (value->type() != Value::boolean) {
+        return;
+    }
+    auto& bool_value = dynamic_cast<Bool_value&>(*value);
+    auto& model = trail.model<bool>(Variable::boolean);
+    model.set_value(var.ord(), bool_value.get_value());
+    trail.decide(var);
+}
 void Bool_theory::decide(Database&, Trail& trail, Variable var)
 {
     if (var.type() == Variable::boolean)

@@ -27,7 +27,7 @@ public:
      * @return conflict clause if a conflict is detected by any theory
      */
     std::vector<Clause> propagate(Database&, Trail&) override;
-
+    void decide_val(Trail&, Variable, std::shared_ptr<Value>) override;
     /** Call decide in all theories
      *
      * @param db clause database
